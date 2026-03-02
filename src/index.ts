@@ -71,7 +71,9 @@ export default {
       const customHeaderHandler = new CustomHeaderHandler(metadata);
 
       // Transform the source HTML with the custom headers
+      // ↓ MODIFIÉ : ajout de .on('head') pour l'injection du JSON-LD
       return new HTMLRewriter()
+        .on('head', customHeaderHandler)
         .on('*', customHeaderHandler)
         .transform(source);
 
@@ -150,11 +152,22 @@ class CustomHeaderHandler {
   }
 
   element(element) {
+
+    // ─── AJOUT : Injection du JSON-LD dans le <head> ──────────────────────
+    if (element.tagName == "head") {
+      if (this.metadata.json_ld) {
+        const jsonLdScript = `<script type="application/ld+json">${JSON.stringify(this.metadata.json_ld)}</script>`;
+        element.append(jsonLdScript, { html: true });
+        console.log("JSON-LD injected into <head>");
+      }
+    }
+
     // Replace the <title> tag content
     if (element.tagName == "title") {
       console.log('Replacing title tag content');
       element.setInnerContent(this.metadata.title);
     }
+
     // Replace meta tags content
     if (element.tagName == "meta") {
       const name = element.getAttribute("name");
