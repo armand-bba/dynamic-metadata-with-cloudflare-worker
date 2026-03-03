@@ -73,7 +73,6 @@ export default {
       // Transform the source HTML with the custom headers
       // ↓ MODIFIÉ : ajout de .on('head') pour l'injection du JSON-LD
       return new HTMLRewriter()
-        .on('head', customHeaderHandler)
         .on('*', customHeaderHandler)
         .transform(source);
 
