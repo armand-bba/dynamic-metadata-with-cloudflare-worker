@@ -12,6 +12,19 @@ export default {
     const url = new URL(request.url);
     const referer = request.headers.get('Referer')
 
+    // --- AJOUT : BLOQUER L'URL TEMPLATE WEWEB ---
+    const scpiPattern = /^\/scpi\/([^\/]+)\/([^\/]+)\/?$/;
+    const scpiMatch = url.pathname.match(scpiPattern);
+    if (scpiMatch) {
+      const id = scpiMatch[1];
+      if (id === ':param' || isNaN(parseInt(id, 10))) {
+        return new Response('Page introuvable', {
+          status: 404,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
+      }
+    }
+	  
     // Function to get the pattern configuration that matches the URL
     function getPatternConfig(url) {
       for (const patternConfig of patterns) {
