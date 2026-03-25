@@ -12,7 +12,7 @@ export default {
     const url = new URL(request.url);
     const referer = request.headers.get('Referer')
 
-    // --- AJOUT : BLOQUER L'URL TEMPLATE WEWEB ---
+    // --- BLOQUER L'URL TEMPLATE WEWEB ---
     const scpiPattern = /^\/scpi\/([^\/]+)\/([^\/]+)\/?$/;
     const scpiMatch = url.pathname.match(scpiPattern);
     if (scpiMatch) {
@@ -80,11 +80,17 @@ export default {
       const metadata = await requestMetadata(url.pathname, patternConfig.metaDataEndpoint);
       console.log("Metadata fetched:", metadata);
 
-      // Create a custom header handler with the fetched metadata
-      const customHeaderHandler = new CustomHeaderHandler(metadata);
+      // --- AJOUT : Construction de l'URL canonique ---
+      // On force le slash final pour que les deux variantes (avec/sans slash)
+      // pointent toujours vers la même URL canonique officielle
+      let canonicalPath = url.pathname;
+      if (!canonicalPath.endsWith('/')) canonicalPath += '/';
+      const canonicalHref = `https://www.paperock.fr${canonicalPath}`;
+
+      // Create a custom header handler with the fetched metadata and canonical URL
+      const customHeaderHandler = new CustomHeaderHandler(metadata, canonicalHref);
 
       // Transform the source HTML with the custom headers
-      // ↓ MODIFIÉ : ajout de .on('head') pour l'injection du JSON-LD
       return new HTMLRewriter()
         .on('*', customHeaderHandler)
         .transform(source);
@@ -159,19 +165,25 @@ export default {
 
 // CustomHeaderHandler class to modify HTML content based on metadata
 class CustomHeaderHandler {
-  constructor(metadata) {
+  // --- MODIFIÉ : ajout de canonicalHref en paramètre ---
+  constructor(metadata, canonicalHref) {
     this.metadata = metadata;
+    this.canonicalHref = canonicalHref;
   }
 
   element(element) {
 
-    // ─── AJOUT : Injection du JSON-LD dans le <head> ──────────────────────
+    // Injection du JSON-LD et de la canonical dans le <head>
     if (element.tagName == "head") {
       if (this.metadata.json_ld) {
         const jsonLdScript = `<script type="application/ld+json">${JSON.stringify(this.metadata.json_ld)}</script>`;
         element.append(jsonLdScript, { html: true });
         console.log("JSON-LD injected into <head>");
       }
+      // --- AJOUT : Injection de la balise canonical ---
+      const canonicalTag = `<link rel="canonical" href="${this.canonicalHref}" />`;
+      element.append(canonicalTag, { html: true });
+      console.log("Canonical injected:", this.canonicalHref);
     }
 
     // Replace the <title> tag content
