@@ -189,7 +189,7 @@ class CustomHeaderHandler {
     // Replace the <title> tag content
     if (element.tagName == "title") {
       console.log('Replacing title tag content');
-      element.setInnerContent(this.metadata.title);
+      element.setInnerContent(this.metadata.title, { html: true });
     }
 
     // Replace meta tags content
